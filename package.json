@@ -9,6 +9,13 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.mjs"
   },
-  "dependencies": { "@mediapipe/tasks-vision": "0.10.21" },
-  "devDependencies": { "typescript": "~5.7.3", "vite": "^6.4.1" }
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.21",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "typescript": "~5.7.3",
+    "vite": "^6.4.1"
+  }
 }
