@@ -18,13 +18,15 @@ Open the localhost URL printed by Vite. Camera access requires localhost or HTTP
 - Enable the camera, hold both hands in loose L shapes, then press Space for a three-second countdown. Press Space again to pause.
 - Keep both thumbs and index fingers visible. Tracking loss starts a fresh stroke on recovery. Crossed or collapsed quads do not stamp.
 - Mouse demo: drag to draw, scroll to rotate, Shift + scroll to resize. Space also toggles continuous mouse drawing.
+- Pen / Guide path: click to add anchors, click-drag for curves, and drag existing anchors or handles to edit. Delete removes the selected anchor; Enter or Done returns to Draw. With Follow path enabled, the plane center starts at the first anchor and advances by hand/mouse travel; fingers still control the shape and perspective. Spacing is measured along the curve. Tracking loss and pauses retain progress; Restart at beginning resets it. Drawing stops at the endpoint. Guides support undo/redo and project saving (even without planes), and never appear in PNG/SVG artwork exports.
 - Edit: click a plane to select its stroke, drag to move, apply the current brush, or delete. Undo/redo covers drawing and edits; clear is undoable.
 - Export PNG at 1×, 2×, or 3× resolution, or SVG with individual polygons grouped by stroke. Camera, grid and fingertip guides are excluded. Background transparency is optional.
 - Save/open JSON projects to preserve editable geometry. Projects are not automatically saved; download one before closing.
+- Set Canvas size to any whole-number width and height from 64–4096 px. Resizing keeps artwork coordinates unchanged; smaller canvases crop the view/export without deleting planes. Undo/redo includes dimensions, and projects retain their canvas size. PNG options follow the canvas dimensions; export scales above 32 megapixels or 8192 px per side are disabled.
 
 ## Scope
 
-This initial version preserves the webcam's projected perspective in a fixed 1200 × 800 artboard. It does **not** infer shared 3D depth or support orbiting. Exported PNGs are static; SVGs retain vector geometry. Editing currently operates on strokes, not individual corners. Hand identity uses frame-to-frame wrist matching; heavy occlusion or crossed hands can require reacquisition. Initial left/right labels mean screen-left and screen-right in the mirrored view.
+This initial version preserves the webcam's projected perspective in a customizable artboard, initially 1200 × 800. It does **not** infer shared 3D depth or support orbiting. Exported PNGs are static; SVGs retain vector geometry. Editing currently operates on strokes, not individual corners. Hand identity uses frame-to-frame wrist matching; heavy occlusion or crossed hands can require reacquisition. Initial left/right labels mean screen-left and screen-right in the mirrored view.
 
 The scene is limited to 6,000 planes with 30 undo snapshots. Inference is throttled to 25 Hz on the main thread; worker-based inference and cached rendering are follow-up performance improvements for slower hardware.
 

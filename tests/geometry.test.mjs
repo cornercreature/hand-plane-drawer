@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validQuad,movement,contains,cameraPoint,demoQuad,svgDocument,parseProject,stabilizePlane,planeFaces} from '../src/geometry.mjs';
+import {validQuad,movement,contains,cameraPoint,demoQuad,svgDocument,parseProject,stabilizePlane,planeFaces,validSize} from '../src/geometry.mjs';
 const points=[{x:0,y:0},{x:100,y:0},{x:100,y:100},{x:0,y:100}];
 const plane={points,stroke:1,style:{color:'#d6f39a',edge:'#d6f39a',fill:true,opacity:.12,width:1.2}};
 test('rejects crossed, collapsed, and nonfinite geometry but accepts rotated planes',()=>{
@@ -30,7 +30,7 @@ test('SVG preserves independent planes, stroke groups and transparent background
   assert.ok(svgDocument([plane],'#20241e').includes('<rect'));
 });
 test('project roundtrip and validation reject unsafe style strings and oversized inputs',()=>{
-  const data={version:1,width:1200,height:800,planes:[plane]};assert.deepEqual(parseProject(JSON.stringify(data)),[plane]);
+  const data={version:1,width:1200,height:800,planes:[plane]};assert.deepEqual(parseProject(JSON.stringify(data)),{width:1200,height:800,planes:[plane]});
   assert.throws(()=>parseProject(JSON.stringify({...data,planes:[{...plane,style:{...plane.style,color:'"><script/>'}}]})));
   assert.throws(()=>parseProject(JSON.stringify({...data,planes:Array(6001).fill(plane)})));
   assert.throws(()=>parseProject(JSON.stringify({...data,version:2})));
@@ -50,6 +50,21 @@ test('thickness produces block faces shared by SVG and picking, with legacy thin
   assert.equal(faces.length,6);assert.equal(Math.hypot(faces[0].points[0].x,faces[0].points[0].y),30);
   assert.ok(faces.some(f=>contains(f.points,{x:110,y:110})));
   assert.equal((svgDocument([thick]).match(/<polygon/g)||[]).length,6);
-  const data={version:1,width:1200,height:800,planes:[thick]};assert.deepEqual(parseProject(JSON.stringify(data)),[thick]);
+  const data={version:1,width:1200,height:800,planes:[thick]};assert.deepEqual(parseProject(JSON.stringify(data)),{width:1200,height:800,planes:[thick]});
   for(const thickness of [0,31,null,'30'])assert.throws(()=>parseProject(JSON.stringify({...data,planes:[{...plane,style:{...plane.style,thickness}}]})));
+});
+
+test('custom artboards validate sizes and preserve dimensions through project and SVG export',()=>{
+  const data={version:1,width:800,height:1200,planes:[plane]};
+  assert.deepEqual(parseProject(JSON.stringify(data)),{width:800,height:1200,planes:[plane]});
+  assert.ok(svgDocument([plane],null,800,1200).includes('width="800" height="1200" viewBox="0 0 800 1200"'));
+  for(const width of [0,63,4097,800.5,'800',null]){assert.equal(validSize(width,800),false);assert.throws(()=>parseProject(JSON.stringify({...data,width})));}
+  assert.equal(validSize(64,4096),true);
+});
+test('custom camera mapping keeps mirrored cover cropping centered for portrait and landscape',()=>{
+  for(const [w,h] of [[800,1200],[1920,1080],[1000,1000]]){
+    assert.deepEqual(cameraPoint({x:.5,y:.5},1920,1080,w,h),{x:w/2,y:h/2});
+    const flat=[{x:w/2-100,y:h/2-100},{x:w/2+100,y:h/2-100},{x:w/2+100,y:h/2+100},{x:w/2-100,y:h/2+100}];
+    assert.ok(movement(stabilizePlane(flat,w,h),flat)<1e-8);
+  }
 });
