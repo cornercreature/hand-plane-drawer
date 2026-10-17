@@ -1,3 +1,4 @@
+import {materialGradient} from './material.mjs';
 import {parseGuide,centerOf} from './guide.mjs';
 /** Geometry is stored in a pixel-based artboard, independently of display size. */
 export const WIDTH = 1200;
@@ -54,7 +55,8 @@ export function planeFaces(plane) {
 }
 /** @param {any[]} planes @param {string | null} background */
 export function svgDocument(planes, background=null, width=WIDTH, height=HEIGHT) {
-  const polygon = p => `<polygon points="${p.points.map(q=>`${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ')}" fill="${p.style.fill ? p.style.color : 'none'}" fill-opacity="${p.style.opacity}" stroke="${p.style.edge}" stroke-width="${p.style.width}" stroke-linejoin="round"/>`;
+  let materialId=0;
+  const polygon = p => {const g=p.style.fill&&materialGradient(p.points,p.style.color,p.style.material),id=`material-${materialId++}`;return (g?`<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${g.from.x}" y1="${g.from.y}" x2="${g.to.x}" y2="${g.to.y}">${g.stops.map(s=>`<stop offset="${s.offset}" stop-color="${s.color}"/>`).join('')}</linearGradient></defs>`:'')+`<polygon points="${p.points.map(q=>`${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(' ')}" fill="${p.style.fill ? g?`url(#${id})`:p.style.color : 'none'}" fill-opacity="${p.style.opacity}" stroke="${p.style.edge}" stroke-width="${p.style.width}" stroke-linejoin="round"/>`;};
   const groups = new Map();
   for(const p of planes) { if(!groups.has(p.stroke)) groups.set(p.stroke,[]); groups.get(p.stroke).push(...planeFaces(p)); }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>Plane studio drawing</title>${background?`<rect width="100%" height="100%" fill="${background}"/>`:''}${[...groups].map(([id,ps])=>`<g id="stroke-${id}">${ps.map(polygon).join('')}</g>`).join('')}</svg>`;
@@ -64,9 +66,10 @@ export function parseProject(text) {
   const color = v=>typeof v==='string' && /^#[0-9a-f]{6}$/i.test(v);
   if(data.version!==1 || !validSize(data.width,data.height) || !Array.isArray(data.planes) || data.planes.length>LIMIT) throw new Error('This is not a supported Plane project.');
   const planes=data.planes.map(p=>{
+    if(p?.style?.material!==undefined&&!['flat','matte','reflective'].includes(p.style.material))throw new Error('Invalid plane material.');
     if(p?.style?.thickness!==undefined && (!Number.isFinite(p.style.thickness)||p.style.thickness<1||p.style.thickness>30)) throw new Error('Plane thickness must be between 1 and 30 px.');
     if(!p || !Array.isArray(p.points) || !validQuad(p.points,0) || p.points.some(q=>Math.abs(q.x)>20000 || Math.abs(q.y)>20000) || !Number.isSafeInteger(p.stroke) || p.stroke<0 || !p.style || !color(p.style.color) || !color(p.style.edge) || typeof p.style.fill!=='boolean' || !Number.isFinite(p.style.opacity) || p.style.opacity<0 || p.style.opacity>1 || !Number.isFinite(p.style.width) || p.style.width<0 || p.style.width>10) throw new Error('The project contains invalid plane data.');
-    return {stroke:p.stroke,points:p.points.map(q=>({x:q.x,y:q.y})),style:{color:p.style.color,edge:p.style.edge,fill:p.style.fill,opacity:p.style.opacity,width:p.style.width,...(p.style.thickness===undefined?{}:{thickness:p.style.thickness})}};
+    return {stroke:p.stroke,points:p.points.map(q=>({x:q.x,y:q.y})),style:{color:p.style.color,edge:p.style.edge,fill:p.style.fill,opacity:p.style.opacity,width:p.style.width,...(p.style.material===undefined?{}:{material:p.style.material}),...(p.style.thickness===undefined?{}:{thickness:p.style.thickness})}};
   });
   return {width:data.width,height:data.height,planes,...(data.guide===undefined?{}:{guide:parseGuide(data.guide)})};
 }
